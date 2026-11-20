@@ -1,0 +1,8 @@
+*
+!Assets
+Assets/*
+!Assets/StreamingAssets
+Assets/StreamingAssets/*
+!Assets/StreamingAssets/Host
+Assets/StreamingAssets/Host/*
+!Assets/StreamingAssets/Host/carousel-linux-amd64

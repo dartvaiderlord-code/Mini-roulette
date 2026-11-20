@@ -1,0 +1,8 @@
+services:
+  room:
+    build: .
+    platform: linux/amd64
+    ports:
+      - "7777:7777/tcp"
+    read_only: true
+    restart: unless-stopped
