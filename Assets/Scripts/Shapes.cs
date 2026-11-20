@@ -6,17 +6,18 @@ namespace Carousel
     public static class Shapes
     {
         static readonly Dictionary<int, Material> paints = new Dictionary<int, Material>();
+        static Material basePaint;
         public static Color Ink(int rgb) => new Color32((byte)(rgb >> 16), (byte)(rgb >> 8), (byte)rgb, 255);
         public static Vector3 V(float x, float y, float z) => new Vector3(x, y, z);
         public static Material Paint(int rgb)
         {
             if (!paints.TryGetValue(rgb, out var paint) || !paint)
             {
-                paint = new Material(Shader.Find("Standard"))
+                if (!basePaint) basePaint = Resources.Load<Material>("ClubPaint");
+                paint = new Material(basePaint)
                 {
                     color = Ink(rgb)
                 };
-                paint.SetFloat("_Glossiness", .27f);
                 paints[rgb] = paint;
             }
 
