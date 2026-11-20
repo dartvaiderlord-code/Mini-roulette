@@ -14,3 +14,7 @@
 .DS_Store
 
 __pycache__/
+
+!Desktop/Carousel.csproj
+/Desktop/bin/
+/Desktop/obj/

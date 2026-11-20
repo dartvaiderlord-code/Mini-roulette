@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <OutputType>WinExe</OutputType>
+    <AssemblyName>Carousel</AssemblyName>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <RootNamespace>Carousel.Desktop</RootNamespace>
+    <DebugType>none</DebugType>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Raylib-cs" Version="7.0.2"/>
+    <Compile Include="../Assets/Scripts/*.cs" Link="Game/%(Filename)%(Extension)"/>
+    <Content Include="Resources/*" CopyToOutputDirectory="PreserveNewest"/>
+    <Content Include="../Assets/StreamingAssets/Host/carousel-windows-amd64.exe" Link="Host/carousel-windows-amd64.exe" CopyToOutputDirectory="PreserveNewest" Condition="'$(RuntimeIdentifier)' == 'win-x64'"/>
+    <Content Include="../Assets/StreamingAssets/Host/carousel-linux-amd64" Link="Host/carousel-linux-amd64" CopyToOutputDirectory="PreserveNewest" Condition="'$(RuntimeIdentifier)' != 'win-x64'"/>
+  </ItemGroup>
+</Project>

@@ -2,7 +2,17 @@
 
 Трёхмерная настольная аркада для Windows x64 на Unity. За игрушечным столом встречаются от двух до пяти взрослых силачей. Можно играть одному с 1–4 ботами без интернета, создать комнату в локальной сети или подключиться к выделенному серверу.
 
-## Запуск на ПК
+## Готовый клиент для Windows x64
+
+[Скачать Carousel-Windows-x64.zip](https://github.com/dartvaiderlord-code/Mini-roulette/raw/refs/heads/windows-download/Carousel-Windows-x64.zip). Распакуйте архив целиком и откройте **Carousel.exe**. Для этой сборки нужны 64-разрядная Windows 10/11 и видеодрайвер с OpenGL 3.3. В ZIP уже есть среда выполнения .NET и сервер для соло и LAN.
+
+Этот вариант использует raylib для графики, звука и ввода. Сцена, персонажи, эффекты, меню и сетевой клиент компилируются из тех же C#-файлов в `Assets/Scripts`, что и Unity-версия. Код интеграции с raylib находится в `Desktop`. Для пересборки через .NET 8 SDK выполните из корня репозитория:
+
+```sh
+dotnet publish Desktop/Carousel.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o Builds/Portable
+```
+
+## Запуск в Unity
 
 1. Откройте корень проекта через **Unity Hub → Add project from disk** с Unity **2022.3.62f1**.
 2. Откройте сцену `Assets/Scenes/Club.unity` и нажмите **Play**.

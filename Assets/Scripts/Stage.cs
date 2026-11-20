@@ -5,7 +5,7 @@ using static Carousel.Shapes;
 
 namespace Carousel
 {
-    public sealed class Stage : MonoBehaviour
+    public sealed partial class Stage : MonoBehaviour
     {
         public const float TableRadius = 1.54f, TableHeight = 1.025f;
         const int Cream = 0xFFF0C6, Teal = 0x458D8C, Red = 0xCB5546, Yellow = 0xEFC25F;

@@ -5,7 +5,7 @@ using static Carousel.Shapes;
 
 namespace Carousel
 {
-    public sealed class Club : MonoBehaviour
+    public sealed partial class Club : MonoBehaviour
     {
         Stage stage;
         RoomLink link;
