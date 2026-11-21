@@ -8,7 +8,8 @@ namespace Carousel
     public sealed partial class Stage
     {
         readonly Dictionary<int, Transform> plates = new Dictionary<int, Transform>();
-        Transform glove;
+        Transform glove, cuff, wrist;
+        Fighter gloveOwner;
         int viewSeat;
         float yaw, pitch;
         public int FieldOfView = 72;
@@ -65,13 +66,16 @@ namespace Carousel
                 var f = entry.Value;
                 if (entry.Key == viewSeat || f.Fallen)
                     continue;
-                Test(f.Head.position, V(.32f, .34f, .32f));
-                Test(f.Torso.position + Vector3.up * .65f, V(.62f, .54f, .51f));
-                void Test(Vector3 center, Vector3 radii)
+                Test(f.Head.position + f.Head.forward * .035f, V(.218f * f.Head.localScale.x, .265f, .26f), f.Head.forward);
+                Test(f.Torso.position + Vector3.up * .67f, V(.56f, .51f, .285f), f.Root.forward);
+                void Test(Vector3 center, Vector3 radii, Vector3 forward)
                 {
                     var delta = eye - center;
-                    Vector3 o = V(delta.x / radii.x, delta.y / radii.y, delta.z / radii.z);
-                    Vector3 d = V(ray.x / radii.x, ray.y / radii.y, ray.z / radii.z);
+                    float length = (float)Math.Sqrt(forward.x * forward.x + forward.z * forward.z);
+                    float x = forward.x / length, z = forward.z / length;
+                    Vector3 ToLocal(Vector3 p) =>
+                        V((p.x * z - p.z * x) / radii.x, p.y / radii.y, (p.x * x + p.z * z) / radii.z);
+                    Vector3 o = ToLocal(delta), d = ToLocal(ray);
                     float dot = o.x * d.x + o.y * d.y + o.z * d.z;
                     float discriminant = dot * dot - d.sqrMagnitude * (o.sqrMagnitude - 1);
                     if (discriminant < 0)
@@ -94,75 +98,59 @@ namespace Carousel
             speaker.PlayOneShot(whirr, .55f);
         }
 
-        void PositionProp(Vector3 rest, Vector3 direction)
+        void PositionProp(Vector3 rest, Vector3 direction, Fighter holder)
         {
             bool holding = viewSeat != 0 && (Time.time < step ? propActor : active) == viewSeat;
             Transform anchor = holding ? Eye.transform : transform;
             if (prop.parent != anchor)
                 prop.SetParent(anchor, true);
-            glove.gameObject.SetActive(holding);
+            if (holder != gloveOwner)
+            {
+                gloveOwner?.HoldProp(false);
+                gloveOwner = holder;
+                if (holder != null)
+                {
+                    var model = ModelLibrary.Load("Revolver");
+                    model.Repaint("hand", glove, holder.Palette);
+                    model.Repaint("cuff", cuff, holder.Palette);
+                }
+            }
+            cuff.gameObject.SetActive(holding);
             if (holding)
             {
+                glove.gameObject.SetActive(true);
                 float phase = Math.Max(0, (spinUntil - Time.time) / .56f);
                 float tilt = Mathf.Sin(Mathf.PI * phase);
                 // Anchor the display pose in screen space across the supported vertical FOV range.
                 float framing = (float)(Math.Tan(Eye.fieldOfView * Math.PI / 360) / Math.Tan(72 * Math.PI / 360));
-                prop.localPosition = V(.24f * framing, -.145f * framing + .035f * tilt, .64f - .045f * recoil);
-                prop.localRotation = Quaternion.Euler(-4 - 13 * recoil - 9 * tilt, -19, -8 - 22 * tilt);
+                prop.localPosition = V(.26f * framing, -.145f * framing + .035f * tilt, .71f - .045f * recoil);
+                prop.localRotation = Quaternion.Euler(-4 - 13 * recoil - 9 * tilt, -26, -8 - 22 * tilt);
                 return;
             }
 
-            prop.position = Vector3.Lerp(prop.position, rest - prop.forward * (.13f * recoil), Mathf.Min(1, Time.deltaTime * 13));
             if (direction.sqrMagnitude > .001f)
                 prop.rotation = Quaternion.Slerp(prop.rotation, Quaternion.LookRotation(direction), Time.deltaTime * 12);
+            Vector3 target = holder == null ? rest : rest - (wrist.position - prop.position);
+            prop.position = Vector3.Lerp(prop.position, target - prop.forward * (.08f * recoil), Mathf.Min(1, Time.deltaTime * 13));
+            bool inHand = holder != null && (wrist.position - rest).sqrMagnitude < .012f;
+            glove.gameObject.SetActive(inHand);
+            holder?.HoldProp(inHand);
         }
 
-        void FinishProp(Transform t)
+        Transform MakeProp()
         {
-            const int navy = 0x344650, brass = 0xBD924F, enamel = 0x317A76, light = 0xF9D884;
-            Rod(t, V(0, .067f, .10f), V(0, .067f, .36f), .061f, navy);
-            Rod(t, V(0, .067f, .34f), V(0, .067f, .374f), .065f, brass);
-            Rod(t, V(0, .067f, .373f), V(0, .067f, .38f), .040f, 0x273439);
-            for (int s = -1; s <= 1; s += 2)
-            {
-                Box(t, V(.056f * s, .068f, .219f), V(.014f, .043f, .193f), enamel);
-                Box(t, V(.063f * s, .073f, .219f), V(.006f, .009f, .154f), light);
-                var panel = Ball(t, V(.047f * s, -.103f, -.092f), V(.022f, .164f, .104f), enamel);
-                panel.localRotation = Quaternion.Euler(16, 0, 0);
-                for (int j = 0; j < 3; j++)
-                    Ball(t, V(.058f * s, -.071f - .033f * j, -.09f), V(.012f, .01f, .057f), brass);
-            }
-
-            for (int i = 0; i < 6; i++)
-            {
-                float a = i * Mathf.PI / 3;
-                Ball(rotor, V(.064f * Mathf.Sin(a), .064f * Mathf.Cos(a), -.073f), V(.033f, .033f, .012f), i % 2 == 0 ? brass : enamel);
-                Box(rotor, V(.075f * Mathf.Sin(a), .075f * Mathf.Cos(a), -.018f), V(.024f, .021f, .061f), navy);
-            }
-
-            Ball(t, V(0, .065f, -.08f), V(.157f, .092f, .083f), navy);
-            // The enamel medallion and alternating inlays remain visible while the drum turns.
-            for (int s = -1; s <= 1; s += 2)
-            {
-                Ball(t, V(.065f * s, .085f, -.095f), V(.018f, .045f, .043f), brass);
-                Ball(t, V(.075f * s, .085f, -.095f), V(.008f, .026f, .027f), enamel);
-            }
-
-            Rod(t, V(0, .035f, -.097f), V(0, .035f, -.075f), .033f, brass);
-            glove = Group(t, "Рука игрока", Vector3.zero);
-            var wrist = Ball(glove, V(.071f, -.192f, -.175f), V(.135f, .135f, .27f), 0xBD805B);
-            wrist.localRotation = Quaternion.Euler(-27, -22, 0);
-            Ball(glove, V(.053f, -.137f, -.117f), V(.145f, .155f, .167f), 0x493C35);
-            Ball(glove, V(.09f, -.223f, -.238f), V(.147f, .14f, .061f), enamel);
-            for (int i = 0; i < 3; i++)
-            {
-                var finger = Ball(glove, V(-.012f, -.097f - i * .032f, -.035f - i * .011f), V(.113f, .039f, .056f), 0x655043);
-                finger.Rotate(0, 14, 5);
-            }
-
-            var thumb = Ball(glove, V(.062f, -.065f, -.10f), V(.068f, .061f, .136f), 0x79614E);
-            thumb.Rotate(16, -32, 0);
+            var root = Group(transform, "Револьвер", V(0, 1.34f, 0));
+            var model = ModelLibrary.Load("Revolver");
+            model.Attach("frame", root);
+            var axis = V(0, .036f, 0);
+            rotor = Group(root, "Барабан", axis);
+            model.Attach("cylinder", rotor).localPosition -= axis;
+            wrist = Group(root, "Запястье", V(.062f, -.193f, -.175f));
+            glove = model.Attach("hand", root);
+            cuff = model.Attach("cuff", root);
+            cuff.gameObject.SetActive(false);
             glove.gameObject.SetActive(false);
+            return root;
         }
     }
 }

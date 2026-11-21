@@ -210,6 +210,7 @@ namespace UnityEngine
     public class Material : Object
     {
         public Color color;
+        public float sheen;
         public Material()
         {
         }
@@ -250,8 +251,8 @@ namespace UnityEngine
     public class Mesh : Object
     {
         public Vector3[] vertices;
-        public int subMeshCount;
-        public int[][] tris = new int[2][];
+        public int subMeshCount { get => tris.Length; set => Array.Resize(ref tris, value); }
+        public int[][] tris = Array.Empty<int[]>();
         public void SetTriangles(int[] t, int i) => tris[i] = t;
         public void RecalculateNormals()
         {

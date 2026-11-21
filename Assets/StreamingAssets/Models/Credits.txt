@@ -1,0 +1,8 @@
+Carousel model credits
+
+Fighter.obj contains a posed, reduced and adapted version of MakeHuman's human base mesh (hm08) and adult male shape targets. These assets were released under CC0 1.0 Universal. The MakeHuman asset headers credit Data Collection AB, Joel Palmius and Jonas Hauquier, and the targets also credit Manuel Bastioni. The default MakeHuman skin weights were used to pose the arms before export.
+Source revision a8bc2d54ff0ac92e78ff71431b1023eda42bf482
+https://github.com/makehumancommunity/makehuman/tree/a8bc2d54ff0ac92e78ff71431b1023eda42bf482/makehuman/data
+https://creativecommons.org/publicdomain/zero/1.0/
+
+Clothing, hair styling, revolver, first-person glove and surface palettes were produced for Carousel. Both clients use the same triangulated OBJ files. Carousel.mtl contains their default Wavefront materials.

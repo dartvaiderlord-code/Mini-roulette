@@ -19,7 +19,7 @@ internal sealed unsafe class SceneRenderer : IDisposable
     readonly Shader litShader, depthShader;
     readonly Camera3D lightCamera;
     readonly U.Light flash;
-    readonly int flashUniform;
+    readonly int flashUniform, eyeUniform;
     readonly Vector3 lightDir;
     static readonly Matrix4x4 reflectZ = Matrix4x4.CreateScale(1, 1, -1);
     static Vector3 World(U.Vector3 v) => new(v.x, v.y, -v.z);
@@ -52,6 +52,7 @@ internal sealed unsafe class SceneRenderer : IDisposable
         in vec3 pos;
         in vec3 norm;
         uniform vec4 colDiffuse, flash;
+        uniform vec3 eyePosition;
         uniform vec3 origin,forwardDir,basisX,basisY;
         uniform sampler2D shadeMap;
         out vec4 result;
@@ -71,7 +72,11 @@ internal sealed unsafe class SceneRenderer : IDisposable
             vec3 towardFlash = flash.xyz-pos;
             float r2=max(.01,dot(towardFlash,towardFlash));
             float glint = flash.w*max(0.0,dot(n,towardFlash*inversesqrt(r2)))/(1.0+2.5*r2);
-            result=vec4(colDiffuse.rgb*(fill+sunlight+glint*vec3(1,.7,.3)),1);
+            vec3 view=normalize(eyePosition-pos);
+            float spec=pow(max(dot(n,normalize(view-forwardDir)),0.),30.)*visibility;
+            float sky=pow(clamp(reflect(-view,n).y*.5+.5,0.,1.),4.);
+            vec3 metalLight=colDiffuse.a*(.29*spec+.18*sky)*vec3(.88,.94,1.);
+            result=vec4(colDiffuse.rgb*(fill+sunlight+glint*vec3(1,.7,.3))+metalLight,1);
         }
         """;
     public SceneRenderer()
@@ -101,6 +106,7 @@ internal sealed unsafe class SceneRenderer : IDisposable
         var sun = U.GameObject.all.Select(o => o.GetComponent<U.Light>()).First(l => l != null && l.type == U.LightType.Directional);
         flash = U.GameObject.all.Select(o => o.GetComponent<U.Light>()).First(l => l != null && l.type == U.LightType.Point);
         flashUniform = GetShaderLocation(litShader, "flash");
+        eyeUniform = GetShaderLocation(litShader, "eyePosition");
         lightDir = Vector3.Normalize(World(sun.transform.forward));
         Vector3 center = new(0, 1, 0), origin = center - lightDir * 16;
         lightCamera = new Camera3D(origin, center, Vector3.UnitY, 15, CameraProjection.Orthographic);
@@ -161,10 +167,19 @@ internal sealed unsafe class SceneRenderer : IDisposable
                 UnloadMesh(part);
     }
 
+    static Color SurfaceColor(U.Material material)
+    {
+        var color = U.GUI.Bytes(material.color);
+        color.A = (byte)(255 * material.sheen);
+        return color;
+    }
+
     public void Render(U.Camera eye)
     {
+        Rlgl.SetClipPlanes(eye.nearClipPlane, eye.farClipPlane);
         draws.Clear();
         text.Clear();
+        SetShaderValue(litShader, eyeUniform, World(eye.transform.position), ShaderUniformDataType.Vec3);
         SetShaderValue(litShader, flashUniform, new Vector4(World(flash.transform.position), flash.gameObject.active ? flash.intensity * .35f : 0), ShaderUniformDataType.Vec4);
         foreach (var obj in U.GameObject.all)
         {
@@ -183,12 +198,12 @@ internal sealed unsafe class SceneRenderer : IDisposable
             var matrix = Matrix4x4.Transpose(reflectZ * obj.transform.world * reflectZ);
             bool castsShadow = renderer.shadowCastingMode != U.Rendering.ShadowCastingMode.Off;
             if (obj.primitive != null)
-                draws.Add((primitives[obj.primitive], matrix, U.GUI.Bytes(renderer.sharedMaterial.color), castsShadow));
+                draws.Add((primitives[obj.primitive], matrix, SurfaceColor(renderer.sharedMaterial), castsShadow));
             else if (obj.GetComponent<U.MeshFilter>()?.sharedMesh is U.Mesh shape)
             {
                 var parts = Upload(shape);
                 for (int i = 0; i < parts.Length; i++)
-                    draws.Add((parts[i], matrix, U.GUI.Bytes(renderer.sharedMaterials[i].color), castsShadow));
+                    draws.Add((parts[i], matrix, SurfaceColor(renderer.sharedMaterials[i]), castsShadow));
             }
         }
 

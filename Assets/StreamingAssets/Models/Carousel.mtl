@@ -1,0 +1,89 @@
+newmtl skin_C99070
+Kd 0.7882 0.5647 0.4392
+
+newmtl lip_AD715F
+Kd 0.6784 0.4431 0.3725
+
+newmtl hair_413630
+Kd 0.2549 0.2118 0.1882
+
+newmtl hairLight_55453A
+Kd 0.3333 0.2706 0.2275
+
+newmtl beard_624B40
+Kd 0.3843 0.2941 0.2510
+
+newmtl shirt_A74D3F
+Kd 0.6549 0.3020 0.2471
+
+newmtl trim_733B35
+Kd 0.4510 0.2314 0.2078
+
+newmtl stitch_BC7960
+Kd 0.7373 0.4745 0.3765
+
+newmtl denim_3C5156
+Kd 0.2353 0.3176 0.3373
+
+newmtl denimLight_506166
+Kd 0.3137 0.3804 0.4000
+
+newmtl boot_493D37
+Kd 0.2863 0.2392 0.2157
+
+newmtl sole_29292A
+Kd 0.1608 0.1608 0.1647
+
+newmtl leather_5E493C
+Kd 0.3686 0.2863 0.2353
+
+newmtl seam_3C302C
+Kd 0.2353 0.1882 0.1725
+
+newmtl welt_876B50
+Kd 0.5294 0.4196 0.3137
+
+newmtl eye_D4C4AD
+Kd 0.8314 0.7686 0.6784
+
+newmtl iris_686049
+Kd 0.4078 0.3765 0.2863
+
+newmtl pupil_27282A
+Kd 0.1529 0.1569 0.1647
+
+newmtl white_D5D0B8
+Kd 0.8353 0.8157 0.7216
+
+newmtl glint_A5A696
+Kd 0.6471 0.6510 0.5882
+
+newmtl steel_64717B
+Kd 0.3922 0.4431 0.4824
+
+newmtl blue_394958
+Kd 0.2235 0.2863 0.3451
+
+newmtl edge_909B9E
+Kd 0.5647 0.6078 0.6196
+
+newmtl shadow_212C34
+Kd 0.1294 0.1725 0.2039
+
+newmtl black_171F23
+Kd 0.0902 0.1216 0.1373
+
+newmtl walnut_804E32
+Kd 0.5020 0.3059 0.1961
+
+newmtl woodgrain_593524
+Kd 0.3490 0.2078 0.1412
+
+newmtl woodlight_9D6542
+Kd 0.6157 0.3961 0.2588
+
+newmtl brass_B69664
+Kd 0.7137 0.5882 0.3922
+
+newmtl cut_994655
+Kd 0.6000 0.2745 0.3333

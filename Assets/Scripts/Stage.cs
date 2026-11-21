@@ -171,29 +171,10 @@ namespace Carousel
             Disc(transform, V(0, 1.073f, 0), .235f, .018f, Cream);
         }
 
-        Transform MakeProp()
-        {
-            var t = Group(transform, "Аркадный револьвер", V(0, 1.34f, 0));
-            var grip = Box(t, V(0, -.095f, -.085f), V(.092f, .23f, .12f), 0x795345);
-            grip.Rotate(16, 0, 0);
-            Box(t, V(0, .038f, .012f), V(.104f, .10f, .178f), 0x424E54);
-            Rod(t, V(0, .067f, .08f), V(0, .067f, .365f), .055f, 0x66777B);
-            var hub = Group(t, "Индексатор", V(0, .035f, .016f));
-            rotor = hub;
-            Rod(hub, V(0, 0, -.068f), V(0, 0, .068f), .089f, 0xB39758);
-            for (int i = 0; i < 6; i++)
-            {
-                float a = i * Mathf.PI / 3;
-                Ball(hub, V(.083f * Mathf.Sin(a), .083f * Mathf.Cos(a), 0), V(.025f, .025f, .1f), 0xDBC989);
-            }
-
-            FinishProp(t);
-            return t;
-        }
-
         public void Reseat(Seat[] seats)
         {
             ViewAs(0);
+            gloveOwner = null;
             plates.Clear();
             burst.Clear();
             foreach (var f in cast.Values)
@@ -290,8 +271,9 @@ namespace Carousel
             flash.gameObject.SetActive(recoil > .6f);
             if (recoil > .6f)
                 flashLamp.intensity = recoil * 2;
+            var attention = cast.TryGetValue(active, out var actor) ? actor.Head.position : cameraBase;
             foreach (var f in cast)
-                f.Value.Pose(f.Key == active, Time.time);
+                f.Value.Pose(f.Key == active, Time.time, f.Key == active ? Vector3.zero : attention);
             burst.Tick(dt);
             Pulse = Mathf.Max(0, Pulse - dt * 1.35f);
             shake = Mathf.Max(0, shake - dt * 2);
@@ -336,7 +318,7 @@ namespace Carousel
 
             if (Time.time < step && cast.TryGetValue(propTarget, out var target))
                 dir = target.Head.position - pos;
-            PositionProp(pos, dir);
+            PositionProp(pos, dir, holder);
         }
     }
 }

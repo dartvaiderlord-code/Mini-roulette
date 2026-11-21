@@ -97,6 +97,7 @@ namespace Carousel
         {
             Grab(false);
             link?.Dispose();
+            ModelLibrary.Release();
         }
 
         void PollLink()
