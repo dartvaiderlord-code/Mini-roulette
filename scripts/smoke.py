@@ -46,6 +46,11 @@ def main():
 
         send(clients[host], type="start")
         state = snapshot()
+        if state.get("independentSpin"):
+            send(clients[host], type="spin", revision=state["revision"])
+            state = snapshot()
+            assert state["spinActor"] == host and state["spinSeq"] == state["revision"]
+            assert state["turn"] == host and not state.get("shot")
         outsider = connect()
         send(outsider, type="hello", protocol=1, name="Гость")
         assert receive(outsider)["type"] == "error"

@@ -37,6 +37,8 @@ namespace Carousel
         readonly List<Mesh> generated = new List<Mesh>();
         readonly Transform ring;
         readonly Quaternion lean;
+        Transform stain, tableStain;
+        float fallTime;
         public Fighter(Transform parent, Vector3 at, int i)
         {
             Index = i;
@@ -56,7 +58,7 @@ namespace Carousel
             }
 
             Torso = Group(Root, "Корпус", V(0, .76f, 0));
-            lean = Quaternion.Euler(34, -8, 18);
+            lean = Quaternion.Euler(55, -12, 26);
             Ball(Torso, V(0, .38f, 0), V(.88f, .9f, .59f), shirt);
             Ball(Torso, V(0, .73f, 0), V(1.29f, .78f, .67f), shirt);
             Box(Torso, V(0, .015f, .02f), V(.69f, .14f, .46f), 0x3C3731);
@@ -182,11 +184,46 @@ namespace Carousel
                 burst.Fountain(Head.position, rng);
             }
 
+            if (animated)
+            {
+                fallTime = Time.time;
+                stain = Group(Root, "Лужа под креслом", V(0, .061f, .21f));
+                Ball(stain, Vector3.zero, V(.94f, .016f, .78f), 0x742638);
+                for (int i = 0; i < 10; i++)
+                {
+                    float a = i * Mathf.PI / 5;
+                    float radius = .32f + .16f * (float)rng.NextDouble();
+                    var lobe = Ball(stain, V(Mathf.Sin(a) * radius, -.001f, Mathf.Cos(a) * radius), V(.34f + .3f * (float)rng.NextDouble(), .014f, .36f), 0x742638);
+                    lobe.Rotate(0, i * 36, 0);
+                }
+
+                Ball(stain, V(.06f, .006f, .07f), V(.53f, .015f, .39f), 0x8E2D40);
+                stain.localScale = V(.08f, 1, .08f);
+                tableStain = Group(Root, "Пятно на столе", V(.03f, Stage.TableHeight + .015f - Root.position.y, .81f));
+                Ball(tableStain, Vector3.zero, V(.65f,.009f,.31f),0x8D293E);
+                for (int i=0;i<5;i++)
+                {
+                    float offset = (float)rng.NextDouble()*.32f-.16f;
+                    var trail = Ball(tableStain,V(offset,-.001f,.12f+i*.045f),V(.19f-i*.018f,.007f,.19f),0x8D293E);
+                    trail.Rotate(0,offset*120,0);
+                }
+                tableStain.localScale = V(.05f,1,.05f);
+            }
+
             Head.gameObject.SetActive(false);
         }
 
         public void Pose(bool active, float time)
         {
+            if (stain)
+            {
+                float elapsed = Mathf.Max(0, time - fallTime);
+                float spread = .08f + 1.18f * (1 - Mathf.Exp(-elapsed * .34f));
+                stain.localScale = V(spread, 1, spread);
+                float seep=.05f+.95f*(1-Mathf.Exp(-elapsed*.52f));
+                tableStain.localScale=V(seep,1,seep);
+            }
+
             var rotation = Fallen ? lean : Quaternion.Euler(Mathf.Sin(time * 1.5f + Index) * 1.6f, 0, 0);
             Torso.localRotation = Quaternion.Slerp(Torso.localRotation, rotation, Time.deltaTime * 6);
             float w = active ? 1.08f + .05f * Mathf.Sin(time * 3) : 1;

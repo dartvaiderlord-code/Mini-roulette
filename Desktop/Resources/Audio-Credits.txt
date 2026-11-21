@@ -1,0 +1,4 @@
+Carousel sound design and original music: Midnight Waltz.
+Report, Fracture and Ratchet incorporate modified blaster, enemy_destroy and weapon_change sounds from Starter Kit FPS by Kenney. Sound effects are released under CC0 1.0 Universal.
+https://github.com/KenneyNL/Starter-Kit-FPS
+https://creativecommons.org/publicdomain/zero/1.0/

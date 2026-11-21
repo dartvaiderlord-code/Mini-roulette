@@ -11,10 +11,14 @@ namespace UnityEngine
     public class AudioSource : Component
     {
         public float spatialBlend;
+        AudioClip current;
+        public bool isPlaying => current != null && current.loaded && Raylib.IsSoundPlaying(current.sound);
+
         public void PlayOneShot(AudioClip clip, float volume)
         {
             if (!clip.loaded)
                 return;
+            current = clip;
             Raylib.SetSoundVolume(clip.sound, volume);
             Raylib.PlaySound(clip.sound);
         }
@@ -38,6 +42,19 @@ namespace UnityEngine
                 sound = Raylib.LoadSoundFromWave(new Wave { SampleCount = (uint)data.Length, SampleRate = (uint)sampleRate, SampleSize = 32, Channels = 1, Data = ptr });
             loaded = true;
             clips.Add(this);
+        }
+
+        public static AudioClip FromFile(string name)
+        {
+            var clip = new AudioClip();
+            if (!Raylib.IsAudioDeviceReady())
+                return clip;
+            string path = System.IO.Path.Combine(AppContext.BaseDirectory, "Resources", "Audio", name + ".ogg");
+            clip.sound = Raylib.LoadSound(path);
+            clip.loaded = Raylib.IsSoundValid(clip.sound);
+            if (clip.loaded)
+                clips.Add(clip);
+            return clip;
         }
 
         internal static void Shutdown()

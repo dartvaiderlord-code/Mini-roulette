@@ -18,8 +18,9 @@ namespace Carousel
         Light flashLamp;
         float recoil;
         Burst burst;
-        AudioSource speaker;
-        AudioClip pop, click, whirr;
+        AudioSource speaker, music;
+        AudioClip pop, click, whirr, fracture, spill, score;
+        float spillAt = -1;
         int active, focus, propTarget, propActor;
         Impact queued;
         float resolveAt;
@@ -38,9 +39,13 @@ namespace Carousel
             cam.gameObject.AddComponent<AudioListener>();
             speaker = cam.gameObject.AddComponent<AudioSource>();
             speaker.spatialBlend = 0;
-            pop = Tone(.32f, 0);
-            click = Tone(.085f, 1);
-            whirr = Tone(.23f, 2);
+            music = Group(cam, "Музыкальная шкатулка", Vector3.zero).gameObject.AddComponent<AudioSource>();
+            pop = Sound("Report");
+            click = Sound("Click");
+            whirr = Sound("Ratchet");
+            fracture = Sound("Fracture");
+            spill = Sound("Spill");
+            score = Sound("MidnightWaltz");
             RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Trilight;
             RenderSettings.ambientSkyColor = Ink(0xEBDBC2);
             RenderSettings.ambientEquatorColor = Ink(0xC6B599);
@@ -68,22 +73,13 @@ namespace Carousel
             cam.LookAt(gaze);
         }
 
-        static AudioClip Tone(float duration, int kind)
+        static AudioClip Sound(string name)
         {
-            const int rate = 22050;
-            var samples = new float[(int)(duration * rate)];
-            var rng = new System.Random(20 + kind);
-            for (int i = 0; i < samples.Length; i++)
-            {
-                float t = (float)i / rate, envelope = Mathf.Exp(-t * (kind == 1 ? 54 : 14));
-                float noise = (float)rng.NextDouble() * 2 - 1;
-                float wave = kind == 0 ? Mathf.Sin(2 * Mathf.PI * (102 * t - 65 * t * t)) * .72f + noise * .28f : kind == 1 ? noise * .7f + Mathf.Sin(t * 2600) * .3f : noise * Mathf.Pow(Mathf.Abs(Mathf.Sin(t * 67)), 6);
-                samples[i] = envelope * wave * .6f;
-            }
-
-            var clip = AudioClip.Create("Аркада " + kind, samples.Length, 1, rate, false);
-            clip.SetData(samples, 0);
-            return clip;
+#if CAROUSEL_PORTABLE
+            return AudioClip.FromFile(name);
+#else
+            return Resources.Load<AudioClip>("Audio/" + name);
+#endif
         }
 
         void Room()
@@ -100,8 +96,19 @@ namespace Carousel
                 Box(transform, V(i * .7f, .98f, 5.13f), V(.028f, 1.94f, .05f), 0x578C88);
             for (int s = -1; s <= 1; s += 2)
             {
-                Box(transform, V(s * 7, 3, 0), V(.2f, 6, 11), 0xF3DEAD);
-                Box(transform, V(s * 7, 1, 0), V(.24f, 2, 11), 0x75A4A0);
+                Box(transform, V(s * 7, 3, -1.5f), V(.2f, 6, 13.8f), 0xF3DEAD);
+                Box(transform, V(s * 7, 1, -1.5f), V(.24f, 2, 13.8f), 0x75A4A0);
+                Box(transform, V(s * 6.86f, 2.03f, -1.5f), V(.13f, .095f, 13.8f), Cream);
+                for (int j = -3; j <= 2; j++)
+                {
+                    float z = j * 2 + .4f;
+                    var plaque = Box(transform, V(s * 6.84f, 3.25f, z), V(.11f, .86f, .86f), Fighter.Colors[(j + 4) % 5]);
+                    plaque.Rotate(j % 2 == 0 ? 45 : 0, 0, 0);
+                    Ball(transform, V(s * 6.76f, 3.25f, z), V(.09f, .41f, .41f), Cream);
+                    for (int k = 0; k < 3; k++)
+                        Ball(transform, V(s * 6.79f, 1.13f + .18f * (k % 2), z + k * .22f), V(.08f, .115f, .115f), 0xD3CE9C);
+                }
+
                 for (int j = 0; j < 3; j++)
                 {
                     float x = s * (3.65f + j * .41f);
@@ -109,6 +116,16 @@ namespace Carousel
                     block.Rotate(0, j * 14, 0);
                     Text(block, ((char)('А' + j)).ToString(), V(0, 0, -.51f), .12f, Cream);
                 }
+            }
+
+            var ceiling = Box(transform, V(0, 6.09f, -1.5f), V(14.25f, .2f, 13.98f), 0xF4E5BD);
+            ceiling.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            Box(transform, V(0, 3, -8.4f), V(14, 6, .18f), 0xEBCFA0);
+            Box(transform, V(0, 1, -8.26f), V(14, 2, .14f), 0x79A9A2);
+            for (int j = -4; j <= 4; j++)
+            {
+                var tile = Box(transform, V(j * 1.36f, 2.85f, -8.23f), V(.54f, .54f, .08f), Fighter.Colors[(j + 5) % 5]);
+                tile.Rotate(0, 0, 45);
             }
 
             // Painted wooden sun, pennants and a framed club sign on the back wall.
@@ -159,7 +176,7 @@ namespace Carousel
             var t = Group(transform, "Аркадный револьвер", V(0, 1.34f, 0));
             var grip = Box(t, V(0, -.095f, -.085f), V(.092f, .23f, .12f), 0x795345);
             grip.Rotate(16, 0, 0);
-            Box(t, V(0, .038f, .012f), V(.128f, .13f, .29f), 0x424E54);
+            Box(t, V(0, .038f, .012f), V(.104f, .10f, .178f), 0x424E54);
             Rod(t, V(0, .067f, .08f), V(0, .067f, .365f), .055f, 0x66777B);
             var hub = Group(t, "Индексатор", V(0, .035f, .016f));
             rotor = hub;
@@ -170,11 +187,14 @@ namespace Carousel
                 Ball(hub, V(.083f * Mathf.Sin(a), .083f * Mathf.Cos(a), 0), V(.025f, .025f, .1f), 0xDBC989);
             }
 
+            FinishProp(t);
             return t;
         }
 
         public void Reseat(Seat[] seats)
         {
+            ViewAs(0);
+            plates.Clear();
             burst.Clear();
             foreach (var f in cast.Values)
                 f.Release();
@@ -192,6 +212,7 @@ namespace Carousel
                 if (!string.IsNullOrEmpty(seats[i].name))
                 {
                     var badge = Group(f.Root, "Табличка", V(0, 2.64f, 0));
+                    plates.Add(seats[i].id, badge);
                     badge.rotation = Quaternion.identity;
                     Box(badge, Vector3.zero, V(1.5f, .24f, .05f), 0x293D3F);
                     Box(badge, V(-.7f, 0, -.031f), V(.052f, .22f, .025f), Fighter.Colors[i]);
@@ -237,6 +258,8 @@ namespace Carousel
             if (shot.hit && cast.TryGetValue(shot.target, out var target))
             {
                 target.Drop(true, new System.Random(shot.seed), burst);
+                speaker.PlayOneShot(fracture, .61f);
+                spillAt = Time.time + .14f;
                 recoil = 1;
                 Pulse = 1;
                 shake = 1;
@@ -252,6 +275,14 @@ namespace Carousel
         {
             if (!Eye)
                 return;
+            if (!music.isPlaying)
+                music.PlayOneShot(score, .32f);
+            if (spillAt >= 0 && Time.time >= spillAt)
+            {
+                speaker.PlayOneShot(spill, .5f);
+                spillAt = -1;
+            }
+
             if (queued != null && Time.time >= resolveAt)
                 ResolveImpact();
             float dt = Mathf.Min(Time.deltaTime, .05f);
@@ -273,8 +304,26 @@ namespace Carousel
             }
 
             var wobble = V(Mathf.Sin(Time.time * 67), Mathf.Cos(Time.time * 73), 0) * shake * shake * (Mild ? 0 : .085f);
-            Eye.transform.position = Vector3.Lerp(Eye.transform.position, origin, dt * 6) + wobble;
-            Eye.transform.rotation = Quaternion.Slerp(Eye.transform.rotation, Quaternion.LookRotation(look - Eye.transform.position), dt * 8);
+            if (viewSeat == 0)
+            {
+                Eye.fieldOfView = 41;
+                Eye.transform.position = Vector3.Lerp(Eye.transform.position, origin, dt * 6) + wobble;
+                Eye.transform.rotation = Quaternion.Slerp(Eye.transform.rotation, Quaternion.LookRotation(look - Eye.transform.position), dt * 8);
+            }
+            else
+            {
+                Look(0, 0);
+                Eye.transform.position += wobble * .28f;
+            }
+
+            foreach (var badge in plates.Values)
+            {
+                Vector3 facing = badge.position - Eye.transform.position;
+                facing.y = 0;
+                if (facing.sqrMagnitude > .001f)
+                    badge.rotation = Quaternion.LookRotation(facing);
+            }
+
             if (spinUntil > Time.time)
                 rotor.Rotate(0, 0, dt * 1000);
             Vector3 pos = V(0, 1.27f, 0), dir = V(.7f, .04f, .25f);
@@ -287,10 +336,7 @@ namespace Carousel
 
             if (Time.time < step && cast.TryGetValue(propTarget, out var target))
                 dir = target.Head.position - pos;
-            pos -= prop.forward * (.13f * recoil);
-            prop.position = Vector3.Lerp(prop.position, pos, Mathf.Min(1, dt * 13));
-            if (dir.sqrMagnitude > .001f)
-                prop.rotation = Quaternion.Slerp(prop.rotation, Quaternion.LookRotation(dir), dt * 12);
+            PositionProp(pos, dir);
         }
     }
 }

@@ -47,7 +47,7 @@ namespace Carousel.Desktop
             R.Raylib.SetExitKey(R.KeyboardKey.Null);
             R.Raylib.InitAudioDevice();
             R.Raylib.SetTargetFPS(60);
-            var glyphs = Enumerable.Range(32, 95).Concat(Enumerable.Range(0x400, 256)).Concat("·—–…→›×−•".Select(c => (int)c)).Distinct().ToArray();
+            var glyphs = Enumerable.Range(32, 95).Concat(Enumerable.Range(0x400, 256)).Concat("·—–…→›×−•°".Select(c => (int)c)).Distinct().ToArray();
             U.GUI.Regular = Font("LiberationSans-Regular.ttf", glyphs);
             U.GUI.Bold = Font("LiberationSans-Bold.ttf", glyphs);
             var club = new U.GameObject("Клуб").AddComponent<Club>();

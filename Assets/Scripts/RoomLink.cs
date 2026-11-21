@@ -32,7 +32,8 @@ namespace Carousel
     public class TableState
     {
         public string phase;
-        public int revision, round, turn, winner, host;
+        public int revision, round, turn, winner, host, spinSeq, spinActor;
+        public bool independentSpin;
         public Seat[] players;
         public Impact shot;
         public Seat Find(int id)

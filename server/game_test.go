@@ -112,3 +112,25 @@ func TestSizeAndBots(t *testing.T) {
 		}
 	}
 }
+
+func TestSpinCommandPreservesTurnAndCharge(t *testing.T) {
+	g := match(t, 3)
+	r := g.device.Magazine.(*Ring)
+	initial := g.Revision
+	actor := g.Turn
+	if g.spin(g.Players[1].ID, initial) == "" || g.spin(actor, initial-1) == "" {
+		t.Fatal("invalid spin accepted")
+	}
+	if g.spin(actor, initial) != "" || g.SpinSeq != initial+1 || g.SpinActor != actor || g.Turn != actor || g.Round != 1 || g.Shot != nil {
+		t.Fatal(g.State)
+	}
+	hits := 0
+	for _, slot := range r.slots {
+		if slot != nil {
+			hits++
+		}
+	}
+	if hits != 1 || g.move(actor, actor, initial, false) == "" || g.move(actor, actor, g.Revision, false) != "" {
+		t.Fatal("unexpected state after independent spin")
+	}
+}

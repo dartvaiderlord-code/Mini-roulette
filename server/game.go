@@ -10,6 +10,7 @@ import (
 type Charge struct{ Effect string }
 type Magazine interface {
 	Refill(*rand.Rand, Charge)
+	Spin(*rand.Rand)
 	Activate(*rand.Rand, bool) (Charge, bool)
 }
 type Ring struct {
@@ -22,9 +23,10 @@ func (r *Ring) Refill(rng *rand.Rand, charge Charge) {
 	r.cursor = 0
 	r.slots[rng.Intn(len(r.slots))] = &charge
 }
+func (r *Ring) Spin(rng *rand.Rand) { r.cursor = rng.Intn(len(r.slots)) }
 func (r *Ring) Activate(rng *rand.Rand, spin bool) (Charge, bool) {
 	if spin {
-		r.cursor = rng.Intn(len(r.slots))
+		r.Spin(rng)
 	}
 	i := r.cursor
 	r.cursor = (i + 1) % len(r.slots)
@@ -59,14 +61,17 @@ type Shot struct {
 	Effect string `json:"effect"`
 }
 type State struct {
-	Phase    string    `json:"phase"`
-	Revision int       `json:"revision"`
-	Round    int       `json:"round"`
-	Turn     int       `json:"turn"`
-	Winner   int       `json:"winner"`
-	Host     int       `json:"host"`
-	Players  []*Player `json:"players"`
-	Shot     *Shot     `json:"shot,omitempty"`
+	IndependentSpin bool      `json:"independentSpin"`
+	SpinSeq         int       `json:"spinSeq"`
+	SpinActor       int       `json:"spinActor"`
+	Phase           string    `json:"phase"`
+	Revision        int       `json:"revision"`
+	Round           int       `json:"round"`
+	Turn            int       `json:"turn"`
+	Winner          int       `json:"winner"`
+	Host            int       `json:"host"`
+	Players         []*Player `json:"players"`
+	Shot            *Shot     `json:"shot,omitempty"`
 }
 type Room struct {
 	State
@@ -76,7 +81,7 @@ type Room struct {
 }
 
 func NewRoom(rng *rand.Rand) *Room {
-	return &Room{State: State{Phase: "lobby", Turn: -1, Winner: -1, Host: -1}, rng: rng, device: Device{"Карусель", &Ring{slots: make([]*Charge, 6)}, Charge{"burst"}}}
+	return &Room{State: State{IndependentSpin: true, Phase: "lobby", Turn: -1, Winner: -1, Host: -1}, rng: rng, device: Device{"Карусель", &Ring{slots: make([]*Charge, 6)}, Charge{"burst"}}}
 }
 func (g *Room) byID(id int) *Player {
 	for _, p := range g.Players {
@@ -122,6 +127,7 @@ func (g *Room) start(id int) string {
 	g.Phase = "match"
 	g.Round = 1
 	g.Turn = g.Players[0].ID
+	g.SpinSeq, g.SpinActor = 0, 0
 	g.Shot = nil
 	g.Winner = -1
 	g.device.Magazine.Refill(g.rng, g.device.Load)
@@ -163,6 +169,16 @@ func (g *Room) settle(actor int, pass bool) {
 			return
 		}
 	}
+}
+func (g *Room) spin(id, revision int) string {
+	if g.Phase != "match" || g.Revision != revision || g.Turn != id {
+		return "Ход уже изменился"
+	}
+	g.device.Magazine.Spin(g.rng)
+	g.Revision++
+	g.SpinSeq = g.Revision
+	g.SpinActor = id
+	return ""
 }
 func (g *Room) move(id, target, revision int, spin bool) string {
 	if g.Phase != "match" || revision != g.Revision || id != g.Turn {
@@ -214,6 +230,7 @@ func (g *Room) returnLobby(id int) string {
 	g.Turn = -1
 	g.Winner = -1
 	g.Round = 0
+	g.SpinSeq, g.SpinActor = 0, 0
 	g.Shot = nil
 	g.Revision++
 	return ""

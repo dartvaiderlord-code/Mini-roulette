@@ -32,6 +32,7 @@ namespace Carousel
             mild = PlayerPrefs.GetInt("mild") == 1;
             stage = gameObject.AddComponent<Stage>();
             stage.Setup();
+            LoadControls();
             stage.Mild = mild;
             Preview();
         }
@@ -82,7 +83,10 @@ namespace Carousel
             link?.Dispose();
             link = null;
             table = null;
-            me = target = watch = lastShot = 0;
+            me = target = watch = lastShot = spinSequence = 0;
+            options = false;
+            binding = -1;
+            Grab(false);
             pending = spin = false;
             lastMove = "";
             notice = reason;
@@ -91,10 +95,11 @@ namespace Carousel
 
         void OnDestroy()
         {
+            Grab(false);
             link?.Dispose();
         }
 
-        void Update()
+        void PollLink()
         {
             if (link == null)
                 return;
@@ -169,6 +174,10 @@ namespace Carousel
                     watch = 0;
                 stage.Watch(watch);
                 stage.Show(s, eventArrived);
+                stage.ViewAs(LiveView ? me : 0);
+                if (s.spinSeq > spinSequence)
+                    stage.Twirl();
+                spinSequence = s.spinSeq;
                 if (eventArrived)
                 {
                     target = 0;
@@ -289,8 +298,12 @@ namespace Carousel
             GUI.matrix = Matrix4x4.Scale(V(scale, scale, 1));
             width = Screen.width / scale;
             height = Screen.height / scale;
-            if (table == null)
+            if (options)
+                OptionsUI();
+            else if (table == null)
                 Menu();
+            else if (LiveView)
+                ViewHUD();
             else
                 MatchUI();
             if (stage.Pulse > 0 && !mild)
@@ -364,7 +377,8 @@ namespace Carousel
             if (Button(x, y + 256, 320, 49, net ? (host ? "Открыть комнату" : "Занять место") : "Начать партию", Vermilion))
                 Connect();
             Label(x, y + 310, 320, 45, notice, 14, Vermilion);
-            ToggleMild(x, y + 346);
+            if (Button(x, y + 346, 187, 31, "Настройки", Dark))
+                Settings(true);
             if (Button(x + 222, y + 346, 98, 31, "Выход", Muted))
                 Application.Quit();
         }
@@ -372,11 +386,12 @@ namespace Carousel
         void MatchUI()
         {
             var self = table.Find(me);
-            bool lobby = table.phase == "lobby", end = table.phase == "end", myTurn = table.turn == me;
+            bool lobby = table.phase == "lobby", end = table.phase == "end";
             Fill(22, 20, 343, 68, Dark);
             Label(38, 24, 307, 25, "КАРУСЕЛЬ", 15, Gold, true);
             Label(38, 46, 307, 31, lobby ? "Комната" : end ? "Партия окончена" : "Раунд " + table.round, 23, Paper, true);
-            ToggleMild(width - 306, 20);
+            if (Button(width - 306, 20, 171, 31, "Настройки", Dark))
+                Settings(true);
             if (Button(width - 126, 20, 102, 31, "Выйти", Vermilion))
             {
                 Leave();
@@ -386,7 +401,7 @@ namespace Carousel
             int n = table.players.Length;
             float y = height - 190;
             Panel(22, y, width - 44, 166);
-            string title = lobby ? "Участники  ·  " + n + " / 5" : end ? "Победитель  ·  " + (table.Find(table.winner)?.name ?? "—") : !self.alive ? "Наблюдение" : myTurn ? "Ваш ход" : "Ходит  ·  " + (table.Find(table.turn)?.name ?? "игрок");
+            string title = lobby ? "Участники  ·  " + n + " / 5" : end ? "Победитель  ·  " + (table.Find(table.winner)?.name ?? "—") : "Наблюдение";
             Label(42, y + 9, width * .55f, 38, title, 26, Dark, true);
             Label(width * .5f, y + 14, width * .5f - 44, 28, string.IsNullOrEmpty(notice) ? lastMove : notice, 16, Muted, false, TextAnchor.MiddleRight);
             float left = 42;
@@ -395,17 +410,12 @@ namespace Carousel
                 var p = table.players[i];
                 bool spectate = !self.alive && !lobby;
                 string suffix = !p.connected ? " (вышел)" : !p.alive ? " ×" : p.id == me ? " · вы" : p.bot ? " · бот" : "";
-                bool picked = spectate ? watch == p.id : target == p.id;
-                bool canSelect = p.alive && (spectate || (!end && myTurn && !pending));
+                bool picked = spectate && watch == p.id;
+                bool canSelect = p.alive && spectate;
                 if (Button(left + i * 181, y + 54, 174, 37, (picked ? "✓ " : "") + p.name + suffix, picked ? Vermilion : p.alive ? Sea : Muted, !lobby && canSelect))
                 {
-                    if (spectate)
-                    {
-                        watch = p.id;
-                        stage.Watch(watch);
-                    }
-                    else
-                        target = p.id;
+                    watch = p.id;
+                    stage.Watch(watch);
                 }
             }
 
@@ -430,16 +440,6 @@ namespace Carousel
                     stage.Watch(0);
                 }
             }
-            else if (myTurn)
-            {
-                if (Button(left, y + 106, 186, 38, spin ? "Крутить: да" : "Крутить: нет", spin ? Vermilion : Sea, !pending))
-                    spin = !spin;
-                Label(left + 205, y + 106, 410, 36, target == 0 ? "Выберите цель выше" : "Цель  ·  " + table.Find(target)?.name, 18);
-                if (Button(width - 256, y + 104, 211, 40, "Нажать спуск", Vermilion, target != 0 && !pending))
-                    Action("move");
-            }
-            else
-                Label(left, y + 106, 730, 36, "Ожидание хода соперника", 18);
         }
     }
 }

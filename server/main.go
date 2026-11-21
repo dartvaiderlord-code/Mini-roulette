@@ -86,6 +86,8 @@ func (t *table) handle(c *client, q command) {
 		switch q.Type {
 		case "start":
 			err = g.start(c.id)
+		case "spin":
+			err = g.spin(c.id, q.Revision)
 		case "move":
 			err = g.move(c.id, q.Target, q.Revision, q.Spin)
 		case "lobby":

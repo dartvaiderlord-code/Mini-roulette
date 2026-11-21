@@ -229,6 +229,7 @@ namespace UnityEngine
 
     public class Renderer : Component
     {
+        public Rendering.ShadowCastingMode shadowCastingMode = Rendering.ShadowCastingMode.On;
         public Material sharedMaterial;
         public Material[] sharedMaterials;
     }
@@ -330,6 +331,8 @@ namespace UnityEngine
 
 namespace UnityEngine.Rendering
 {
+    public enum ShadowCastingMode { Off, On }
+
     public enum AmbientMode
     {
         Trilight

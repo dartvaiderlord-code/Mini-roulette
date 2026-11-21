@@ -12,7 +12,7 @@ internal sealed unsafe class SceneRenderer : IDisposable
     const int ShadowSize = 1024;
     readonly Dictionary<string, Mesh> primitives = new();
     static readonly Dictionary<U.Mesh, Mesh[]> sectors = new();
-    readonly List<(Mesh mesh, Matrix4x4 transform, Color color)> draws = new();
+    readonly List<(Mesh mesh, Matrix4x4 transform, Color color, bool castsShadow)> draws = new();
     readonly List<U.TextMesh> text = new();
     readonly Material lit, shadow;
     readonly RenderTexture2D shadowMap;
@@ -181,13 +181,14 @@ internal sealed unsafe class SceneRenderer : IDisposable
             if (renderer == null)
                 continue;
             var matrix = Matrix4x4.Transpose(reflectZ * obj.transform.world * reflectZ);
+            bool castsShadow = renderer.shadowCastingMode != U.Rendering.ShadowCastingMode.Off;
             if (obj.primitive != null)
-                draws.Add((primitives[obj.primitive], matrix, U.GUI.Bytes(renderer.sharedMaterial.color)));
+                draws.Add((primitives[obj.primitive], matrix, U.GUI.Bytes(renderer.sharedMaterial.color), castsShadow));
             else if (obj.GetComponent<U.MeshFilter>()?.sharedMesh is U.Mesh shape)
             {
                 var parts = Upload(shape);
                 for (int i = 0; i < parts.Length; i++)
-                    draws.Add((parts[i], matrix, U.GUI.Bytes(renderer.sharedMaterials[i].color)));
+                    draws.Add((parts[i], matrix, U.GUI.Bytes(renderer.sharedMaterials[i].color), castsShadow));
             }
         }
 
@@ -195,7 +196,7 @@ internal sealed unsafe class SceneRenderer : IDisposable
         ClearBackground(Color.White);
         BeginMode3D(lightCamera);
         foreach (var d in draws)
-            DrawMesh(d.mesh, shadow, d.transform);
+            if (d.castsShadow) DrawMesh(d.mesh, shadow, d.transform);
         EndMode3D();
         EndTextureMode();
         var camera = new Camera3D(World(eye.transform.position), World(eye.transform.position + eye.transform.forward), Vector3.UnitY, eye.fieldOfView, CameraProjection.Perspective);
