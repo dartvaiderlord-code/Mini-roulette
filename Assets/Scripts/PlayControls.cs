@@ -22,6 +22,15 @@ namespace Carousel
             }
         }
 
+        public static bool FullscreenPressed()
+        {
+#if CAROUSEL_PORTABLE
+            return R.Raylib.IsKeyPressed(R.KeyboardKey.F11);
+#else
+            return Input.GetKeyDown(KeyCode.F11);
+#endif
+        }
+
         public static void Capture(bool value)
         {
 #if CAROUSEL_PORTABLE

@@ -13,6 +13,7 @@
     <Compile Include="../Assets/Scripts/*.cs" Link="Game/%(Filename)%(Extension)"/>
     <Content Include="../Assets/Resources/Audio/*.ogg" Link="Resources/Audio/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest"/>
     <Content Include="../Assets/StreamingAssets/Models/*" Exclude="../Assets/StreamingAssets/Models/*.meta" Link="Models/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest"/>
+    <Content Include="../Assets/StreamingAssets/Audio-Credits.txt" Link="Resources/Audio-Credits.txt" CopyToOutputDirectory="PreserveNewest"/>
     <Content Include="Resources/*" CopyToOutputDirectory="PreserveNewest"/>
     <Content Include="../Assets/StreamingAssets/Host/carousel-windows-amd64.exe" Link="Host/carousel-windows-amd64.exe" CopyToOutputDirectory="PreserveNewest" Condition="'$(RuntimeIdentifier)' == 'win-x64'"/>
     <Content Include="../Assets/StreamingAssets/Host/carousel-linux-amd64" Link="Host/carousel-linux-amd64" CopyToOutputDirectory="PreserveNewest" Condition="'$(RuntimeIdentifier)' != 'win-x64'"/>

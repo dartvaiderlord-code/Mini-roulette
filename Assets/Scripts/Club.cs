@@ -97,6 +97,7 @@ namespace Carousel
         {
             Grab(false);
             link?.Dispose();
+            if (stage) stage.ReleaseCast();
             ModelLibrary.Release();
         }
 
@@ -309,9 +310,12 @@ namespace Carousel
                 MatchUI();
             if (stage.Pulse > 0 && !mild)
             {
-                float a = stage.Pulse * (.11f + .07f * Mathf.Sin(stage.Pulse * 16));
+                float a = stage.Pulse * (.24f + .09f * Mathf.Sin(stage.Pulse * 16));
                 RectFill(0, 0, width, height, new Color(.76f, .08f, .12f, a));
             }
+
+            if (stage.Flash > 0 && !mild)
+                RectFill(0, 0, width, height, new Color(1f, .91f, .71f, stage.Flash * .56f));
 
             GUI.matrix = matrix;
         }

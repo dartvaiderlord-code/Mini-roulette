@@ -91,7 +91,7 @@ namespace UnityEngine
             }
         }
 
-        public static int GetInt(string key) => int.TryParse(GetString(key, ""), out var val) ? val : 0;
+        public static int GetInt(string key, int defaultValue = 0) => int.TryParse(GetString(key, ""), out var val) ? val : defaultValue;
         public static string GetString(string key, string fallback) => values.GetValueOrDefault(key, fallback);
         public static void SetInt(string key, int value) => SetString(key, value.ToString());
         public static void SetString(string key, string value) => values[key] = value;
@@ -101,6 +101,11 @@ namespace UnityEngine
     {
         public static int width => R.Raylib.GetScreenWidth();
         public static int height => R.Raylib.GetScreenHeight();
+        public static bool fullScreen
+        {
+            get => R.Raylib.IsWindowState(R.ConfigFlags.BorderlessWindowMode);
+            set { if (value != fullScreen) R.Raylib.ToggleBorderlessWindowed(); }
+        }
     }
 
     public enum FontStyle

@@ -18,7 +18,7 @@ namespace Carousel
             "Своя цель (удерживать)"
         };
         readonly int[] keys = new int[3];
-        int sensitivity = 100, fov = 72, binding = -1, spinSequence;
+        int volume = 85, sensitivity = 100, fov = 72, binding = -1, spinSequence;
         bool options, captured, selfAim;
         float allowInputAt;
         bool LiveView => table != null && table.phase == "match" && table.Find(me).alive;
@@ -34,6 +34,9 @@ namespace Carousel
             int s = PlayerPrefs.GetInt("sensitivity"), f = PlayerPrefs.GetInt("fov");
             sensitivity = Limit(s == 0 ? 100 : s, 20, 250);
             fov = Limit(f == 0 ? 72 : f, 50, 105);
+            volume = Limit(PlayerPrefs.GetInt("volume", 85), 0, 100);
+            AudioListener.volume = volume / 100f;
+            Screen.fullScreen = PlayerPrefs.GetInt("fullscreen", Screen.fullScreen ? 1 : 0) != 0;
             stage.FieldOfView = fov;
         }
 
@@ -44,8 +47,18 @@ namespace Carousel
                 PlayerPrefs.SetInt("action" + i, keys[i]);
             PlayerPrefs.SetInt("sensitivity", sensitivity);
             PlayerPrefs.SetInt("fov", fov);
+            PlayerPrefs.SetInt("volume", volume);
+            AudioListener.volume = volume / 100f;
             PlayerPrefs.Save();
             stage.FieldOfView = fov;
+        }
+
+        void ToggleFullscreen()
+        {
+            bool next = !Screen.fullScreen;
+            Screen.fullScreen = next;
+            PlayerPrefs.SetInt("fullscreen", next ? 1 : 0);
+            PlayerPrefs.Save();
         }
 
         void Settings(bool open)
@@ -69,6 +82,7 @@ namespace Carousel
         void Update()
         {
             PollLink();
+            if (PlayControls.FullscreenPressed()) ToggleFullscreen();
             if (captured && !PlayControls.Focused)
                 Settings(true);
             if (PlayControls.Key(PlayControls.Escape))
@@ -133,10 +147,10 @@ namespace Carousel
 
         void OptionsUI()
         {
-            float x = (width - 490) / 2, y = (height - 468) / 2;
-            Panel(x, y, 490, 468);
+            float x = (width - 490) / 2, y = (height - 555) / 2;
+            Panel(x, y, 490, 555);
             Fill(x + 2, y + 2, 486, 56, Sea);
-            Label(x + 22, y + 6, 442, 44, "Управление и камера", 25, Paper, true);
+            Label(x + 22, y + 6, 442, 44, "Настройки", 25, Paper, true);
             for (int i = 0; i < 3; i++)
             {
                 float row = y + 75 + i * 43;
@@ -150,19 +164,24 @@ namespace Carousel
 
             Stepper("Чувствительность", sensitivity + " %", y + 217, 10, 20, 250, ref sensitivity);
             Stepper("Поле зрения", fov + "°", y + 264, 5, 50, 105, ref fov);
-            ToggleMild(x + 23, y + 320);
-            if (Button(x + 285, y + 320, 182, 31, "По умолчанию", Muted))
+            Stepper("Общая громкость", volume + " %", y + 311, 5, 0, 100, ref volume);
+            Label(x + 23, y + 359, 230, 36, "Режим экрана · F11", 17);
+            if (Button(x + 251, y + 359, 216, 35, Screen.fullScreen ? "Полный экран" : "В окне"))
+                ToggleFullscreen();
+            ToggleMild(x + 23, y + 418);
+            if (Button(x + 285, y + 418, 182, 31, "По умолчанию", Muted))
             {
                 Array.Copy(defaults, keys, 3);
                 sensitivity = 100;
                 fov = 72;
+                volume = 85;
                 binding = -1;
                 SaveControls();
             }
 
-            if (Button(x + 23, y + 401, 218, 44, table == null ? "Назад" : "Продолжить", Sea))
+            if (Button(x + 23, y + 488, 218, 44, table == null ? "Назад" : "Продолжить", Sea))
                 Settings(false);
-            if (table != null && Button(x + 251, y + 401, 216, 44, "Покинуть комнату", Vermilion))
+            if (table != null && Button(x + 251, y + 488, 216, 44, "Покинуть комнату", Vermilion))
             {
                 Settings(false);
                 Leave();

@@ -96,6 +96,12 @@ namespace UnityEngine
             }
         }
 
+        public Vector3 InverseTransformPoint(Vector3 point)
+        {
+            N.Matrix4x4.Invert(world, out var inverse);
+            return N.Vector3.Transform(point, inverse);
+        }
+
         public void LookAt(Vector3 v)
         {
             rotation = Quaternion.LookRotation(v - position);

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 using static Carousel.Shapes;
 
@@ -35,7 +36,9 @@ namespace Carousel
 
         public readonly int Index;
 
-        readonly Transform ring, restingHand;
+        readonly List<Mesh> clothingMarks = new List<Mesh>();
+        readonly Transform shirt;
+        readonly Transform ring, restingHand, neckJoin, neckEnd, neckPivot;
         readonly Quaternion lean;
         Transform stain, tableStain;
         float fallTime;
@@ -81,11 +84,16 @@ namespace Carousel
             var model = ModelLibrary.Load("Fighter");
             model.Attach("lower", Root, Palette);
             Torso = Group(Root, "Корпус", V(0, .76f, 0));
-            model.Attach("torso", Torso, Palette);
+            shirt = model.Attach("torso", Torso, Palette);
             restingHand = model.Attach("restingHand", Torso, Palette);
             lean = Quaternion.Euler(55, -12, 26);
             Hand = Group(Torso, "Захват", V(.451f, .341f, .625f));
-            Head = Group(Torso, "Голова", V(0, 1.4f, .025f));
+            neckJoin = model.Attach("neckJoin", Torso, Palette);
+            neckEnd = model.Attach("neckEnd", Torso, Palette);
+            neckEnd.gameObject.SetActive(false);
+            neckPivot = Group(Torso, "Поворот шеи", V(0, 1.195f, .015f));
+            Head = Group(neckPivot, "Голова", V(0, .205f, .010f));
+            model.Attach("underJaw", Head, Palette);
             Head.localScale = V(HeadWidths[i], 1, 1);
             model.AttachHead(Head, Palette);
             model.Attach("features", Head, Palette);
@@ -101,11 +109,13 @@ namespace Carousel
             if (Fallen)
                 return;
             Fallen = true;
+            neckJoin.gameObject.SetActive(false);
+            neckEnd.gameObject.SetActive(true);
             if (animated)
             {
                 while (Head.childCount > 0)
                     burst.Fragment(Head.GetChild(Head.childCount - 1), Head.position, rng);
-                burst.Fountain(Head.position, rng);
+                burst.Fountain(neckEnd, Root.forward, rng);
             }
 
             if (animated)
@@ -157,14 +167,21 @@ namespace Carousel
                 float angle = (float)(Math.Atan2(forward.z * direction.x - forward.x * direction.z,
                     forward.x * direction.x + forward.z * direction.z) * 180 / Math.PI);
                 float glance = Math.Max(-34, Math.Min(34, angle));
-                Head.localRotation = Quaternion.Slerp(Head.localRotation, Quaternion.Euler(0, glance, 0), Time.deltaTime * 4);
+                neckPivot.localRotation = Quaternion.Slerp(neckPivot.localRotation, Quaternion.Euler(0, glance, 0), Time.deltaTime * 4);
             }
             float w = active ? 1.08f + .05f * Mathf.Sin(time * 3) : 1;
             ring.localScale = V(1.56f * w, .0175f, 1.56f * w);
         }
 
+        public void Splash(Vector3 origin, bool direct, System.Random rng)
+        {
+            var mark = ClothSplashes.Apply(shirt, origin, direct, rng);
+            if (mark) clothingMarks.Add(mark);
+        }
+
         public void Release()
         {
+            foreach (var mesh in clothingMarks) UnityEngine.Object.Destroy(mesh);
             UnityEngine.Object.Destroy(Root.gameObject);
         }
     }

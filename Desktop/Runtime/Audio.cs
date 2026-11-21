@@ -6,6 +6,10 @@ namespace UnityEngine
 {
     public class AudioListener : Component
     {
+        public static float volume
+        {
+            set { if (Raylib.IsAudioDeviceReady()) Raylib.SetMasterVolume(value); }
+        }
     }
 
     public class AudioSource : Component
@@ -13,6 +17,12 @@ namespace UnityEngine
         public float spatialBlend;
         AudioClip current;
         public bool isPlaying => current != null && current.loaded && Raylib.IsSoundPlaying(current.sound);
+
+        public void Stop()
+        {
+            if (current != null && current.loaded) Raylib.StopSound(current.sound);
+            current = null;
+        }
 
         public void PlayOneShot(AudioClip clip, float volume)
         {

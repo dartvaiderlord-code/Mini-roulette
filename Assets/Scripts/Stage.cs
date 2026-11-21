@@ -11,6 +11,8 @@ namespace Carousel
         const int Cream = 0xFFF0C6, Teal = 0x458D8C, Red = 0xCB5546, Yellow = 0xEFC25F;
         public Camera Eye { get; private set; }
         public float Pulse { get; private set; }
+        public float Flash { get; private set; }
+        readonly Transform[] balloonStands = new Transform[4];
 
         public bool Mild;
         readonly Dictionary<int, Fighter> cast = new Dictionary<int, Fighter>();
@@ -18,9 +20,9 @@ namespace Carousel
         Light flashLamp;
         float recoil;
         Burst burst;
-        AudioSource speaker, music;
-        AudioClip pop, click, whirr, fracture, spill, score;
-        float spillAt = -1;
+        AudioSource speaker, music, liquid;
+        AudioClip pop, click, whirr, fracture, spill, scatter, score;
+        float spillAt = -1, scatterAt;
         int active, focus, propTarget, propActor;
         Impact queued;
         float resolveAt;
@@ -39,12 +41,14 @@ namespace Carousel
             cam.gameObject.AddComponent<AudioListener>();
             speaker = cam.gameObject.AddComponent<AudioSource>();
             speaker.spatialBlend = 0;
+            liquid = Group(cam, "Жидкость", Vector3.zero).gameObject.AddComponent<AudioSource>();
             music = Group(cam, "Музыкальная шкатулка", Vector3.zero).gameObject.AddComponent<AudioSource>();
             pop = Sound("Report");
             click = Sound("Click");
             whirr = Sound("Ratchet");
             fracture = Sound("Fracture");
             spill = Sound("Spill");
+            scatter = Sound("Scatter");
             score = Sound("MidnightWaltz");
             RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Trilight;
             RenderSettings.ambientSkyColor = Ink(0xEBDBC2);
@@ -58,6 +62,14 @@ namespace Carousel
             sun.intensity = 1.07f;
             sun.shadows = LightShadows.Soft;
             Room();
+            var toys = ModelLibrary.Load("Playroom");
+            toys.Attach("toys", transform);
+            for (int i = 0; i < balloonStands.Length; i++)
+            {
+                var stand = Group(transform, "Воздушные шары", V(i % 2 == 0 ? -4.4f : 4.4f, .015f, i < 2 ? 2.3f : -4.1f));
+                toys.Attach("balloons", stand);
+                balloonStands[i] = stand;
+            }
             ToyTable();
             prop = MakeProp();
             flash = Ball(prop, V(0, .067f, .39f), V(.13f, .13f, .24f), Yellow);
@@ -67,8 +79,8 @@ namespace Carousel
             flashLamp.range = 2.5f;
             flash.gameObject.SetActive(false);
             burst = new Burst(transform);
-            cameraBase = V(0, 3.22f, -6.85f);
-            gaze = V(0, 1.26f, .45f);
+            cameraBase = V(.25f, 4.75f, -7.5f);
+            gaze = V(0, 1.07f, .06f);
             cam.position = cameraBase;
             cam.LookAt(gaze);
         }
@@ -171,23 +183,36 @@ namespace Carousel
             Disc(transform, V(0, 1.073f, 0), .235f, .018f, Cream);
         }
 
+        void ClearEffects()
+        {
+            burst?.Clear();
+            if (liquid) liquid.Stop();
+            if (speaker) speaker.Stop();
+            scatterAt = 0;
+        }
+
+        public void ReleaseCast()
+        {
+            ClearEffects();
+            foreach (var f in cast.Values) f.Release();
+            cast.Clear();
+        }
+
         public void Reseat(Seat[] seats)
         {
             ViewAs(0);
             gloveOwner = null;
             plates.Clear();
-            burst.Clear();
-            foreach (var f in cast.Values)
-                f.Release();
-            cast.Clear();
+            ReleaseCast();
             focus = 0;
             active = 0;
             propTarget = 0;
             queued = null;
-            step = spinUntil = Pulse = shake = 0;
+            step = spinUntil = Pulse = Flash = shake = recoil = 0;
+            spillAt = -1;
             for (int i = 0; i < seats.Length; i++)
             {
-                float a = Mathf.Lerp(-83, 83, (i + .22f) / (seats.Length - .56f)) * Mathf.Deg2Rad;
+                float a = (i + .5f) * (2f * Mathf.PI / seats.Length);
                 var f = new Fighter(transform, V(Mathf.Sin(a) * 2.05f, .03f, Mathf.Cos(a) * 2.05f), i);
                 cast.Add(seats[i].id, f);
                 if (!string.IsNullOrEmpty(seats[i].name))
@@ -238,11 +263,14 @@ namespace Carousel
             speaker.PlayOneShot(shot.hit ? pop : click, shot.hit ? .8f : .6f);
             if (shot.hit && cast.TryGetValue(shot.target, out var target))
             {
+                var spray = new System.Random(shot.seed ^ 0x16a7);
+                foreach (var participant in cast.Values)
+                    participant.Splash(target.Head.position, participant == target, spray);
                 target.Drop(true, new System.Random(shot.seed), burst);
                 speaker.PlayOneShot(fracture, .61f);
                 spillAt = Time.time + .14f;
                 recoil = 1;
-                Pulse = 1;
+                Flash = Pulse = 1;
                 shake = 1;
             }
         }
@@ -260,23 +288,31 @@ namespace Carousel
                 music.PlayOneShot(score, .32f);
             if (spillAt >= 0 && Time.time >= spillAt)
             {
-                speaker.PlayOneShot(spill, .5f);
+                liquid.PlayOneShot(spill, .62f);
                 spillAt = -1;
             }
 
             if (queued != null && Time.time >= resolveAt)
                 ResolveImpact();
-            float dt = Mathf.Min(Time.deltaTime, .05f);
+            for (int i = 0; i < balloonStands.Length; i++)
+                balloonStands[i].localRotation = Quaternion.Euler(Mathf.Sin(Time.time * .73f + i) * 1.4f, i * 67, Mathf.Cos(Time.time * .87f + i) * 1.7f);
+            float dt = Mathf.Min(Time.deltaTime, .1f);
             recoil = Mathf.Max(0, recoil - dt * 4.8f);
-            flash.gameObject.SetActive(recoil > .6f);
-            if (recoil > .6f)
-                flashLamp.intensity = recoil * 2;
+            flash.gameObject.SetActive(recoil > .48f);
+            if (recoil > .48f)
+                flashLamp.intensity = recoil * 4.5f;
             var attention = cast.TryGetValue(active, out var actor) ? actor.Head.position : cameraBase;
             foreach (var f in cast)
                 f.Value.Pose(f.Key == active, Time.time, f.Key == active ? Vector3.zero : attention);
             burst.Tick(dt);
-            Pulse = Mathf.Max(0, Pulse - dt * 1.35f);
-            shake = Mathf.Max(0, shake - dt * 2);
+            if (burst.Landed && Time.time >= scatterAt)
+            {
+                speaker.PlayOneShot(scatter, .46f);
+                scatterAt = Time.time + .48f;
+            }
+            Flash = Mathf.Max(0, Flash - dt * 8);
+            Pulse = Mathf.Max(0, Pulse - dt * .39f);
+            shake = Mathf.Max(0, shake - dt * 1.04f);
             var origin = cameraBase;
             var look = gaze;
             if (focus != 0 && cast.TryGetValue(focus, out var subject))
@@ -285,17 +321,18 @@ namespace Carousel
                 origin += V(look.x * .36f, 0, .82f);
             }
 
-            var wobble = V(Mathf.Sin(Time.time * 67), Mathf.Cos(Time.time * 73), 0) * shake * shake * (Mild ? 0 : .085f);
+            var wobble = V(Mathf.Sin(Time.time * 67), Mathf.Cos(Time.time * 73), 0) * shake * shake * (Mild ? 0 : .19f);
             if (viewSeat == 0)
             {
                 Eye.fieldOfView = 41;
-                Eye.transform.position = Vector3.Lerp(Eye.transform.position, origin, dt * 6) + wobble;
+                Eye.transform.position = Vector3.Lerp(Eye.transform.position, origin, dt * 6);
                 Eye.transform.rotation = Quaternion.Slerp(Eye.transform.rotation, Quaternion.LookRotation(look - Eye.transform.position), dt * 8);
+                Eye.transform.position += wobble;
             }
             else
             {
                 Look(0, 0);
-                Eye.transform.position += wobble * .28f;
+                Eye.transform.position += wobble * .69f;
             }
 
             foreach (var badge in plates.Values)
